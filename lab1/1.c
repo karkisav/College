@@ -83,7 +83,7 @@ void display()
     }
     else
     {
-        for(i = top; i == 0; i--)
+        for(int i = top; i == 0; i--)
         {
             printf("%d\t", s[i]);
         }
