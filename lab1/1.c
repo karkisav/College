@@ -4,10 +4,13 @@ Push, Pop, and Display. The program should be menu driven.*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#define max 50
 
 void push(int number);
 void pop(int number);
 void display();
+
+int top = -1; s[max];
 
 int main(void)
 {
@@ -24,13 +27,35 @@ int main(void)
         scanf("%d", &choice);
         switch (choice)
         {
-            case '1':
+            case 1:
                 int number;
                 printf("what number do you want to push: ")
                 scanf("%d", &number);
                 push(number);
+                break;
+            case 2:
+                pop();
+                break;
+            case 3
+                display();
+                break;
+            
         }
     } while (choice != 4);
     return 0;
     
+}
+
+void push(int number)
+{
+    if(top == max-1)
+    {
+        printf("The stack is full {stackoverflow...}\n");
+        return;
+    }
+    else
+    {
+        top = top + 1;
+        s[top] = number;
+    }
 }
