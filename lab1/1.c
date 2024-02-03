@@ -59,3 +59,18 @@ void push(int number)
         s[top] = number;
     }
 }
+
+void pop()
+{
+    int temp;
+    if (top == -1)
+    {
+        printf("The stack is empty{StackUnderflow...}");
+        return;
+    }
+    else
+    {
+        temp = s[top];
+        top = top - 1;
+    }
+}
