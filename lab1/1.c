@@ -11,21 +11,26 @@ void display();
 
 int main(void)
 {
-    int ch;
+    int choice;
     int array[100];
-    printf("Enter the serial number of to execute the following tasks\n");
-    printf("1. Push\n");
-    printf("2. Pop\n");
-    printf("3. Display\n");
-    printf("4. Exit\n")
-
-    scanf("%d", ch);
-    switch (ch)
+    do
     {
-        case '1':
-            int number;
-            printf("what number do you want to push: ")
-            scanf("%d")
-            push();
-    }
+        printf("Enter the serial number of to execute the following tasks\n");
+        printf("1. Push\n");
+        printf("2. Pop\n");
+        printf("3. Display\n");
+        printf("4. Exit\n")
+
+        scanf("%d", &choice);
+        switch (choice)
+        {
+            case '1':
+                int number;
+                printf("what number do you want to push: ")
+                scanf("%d", &number);
+                push(number);
+        }
+    } while (choice != 4);
+    return 0;
+    
 }
