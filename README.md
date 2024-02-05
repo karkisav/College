@@ -1,1 +1,1 @@
-# This repo is to be shared that will be having all the code assignemnets (labs) for the course CS102
+# This repo is to be shared that will be having all the code assignemnets (labs) for the course of Sem-2
