@@ -5,16 +5,33 @@ The program should be able to read the information about the specified number of
 
 #include <stdio.h>
 #include <stdlib.h>
-typedef struct 
+#include <string.h>
+#include <ctype.h>
+
+typedef struct book
 {
-    char *title[10];
+    char title[10];
     int pages;
-}book;
+} book;
 
 int main(void)
 {
     int n;
+    char string[10];
     printf("Enter the number of books: ");
     scanf("%d", &n);
-    struct book  *ptr = (struct book*)(n * sizeof(book));
+    struct book *ptr = malloc(n * sizeof(book));
+    if(ptr == NULL)
+    {
+        return 1;
+    }
+    for (int i = 0; i < n; i++)
+    {
+        printf("Enter the title of the book: ");
+        scanf(" %[^\n]", string);
+        strcpy(ptr[i].title, string);
+    }
+
+    free(ptr);
+    return 0;
 }
