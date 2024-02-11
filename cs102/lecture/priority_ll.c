@@ -2,7 +2,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-bool unload(node *list);
 
 typedef struct node
 {
@@ -11,8 +10,9 @@ typedef struct node
     struct node* next;
 }node;
 
-bool insertion(node *list);
-bool deletion(node *list);
+void insertion(node *list);
+void deletion(node *list);
+bool unload(node *list);
 void display(node *list);
 
 int main(void)
@@ -48,7 +48,7 @@ int main(void)
     return 0;
 }
 
-bool inserrtion(node *list)
+void inserrtion(node *list)
 {
     int value, priority;
     printf("Enter your value: ");
@@ -63,8 +63,6 @@ bool inserrtion(node *list)
     n->priority = priority;
     n->next = list;
     n = list;
-
-
 }
 
 void display(node *list)
@@ -72,7 +70,7 @@ void display(node *list)
         printf("\n+-- List Visualizer --+\n\n");
     while (list != NULL)
     {
-        printf("Location %p\nPhrase: \"%s\"\nNext: %p\n\n", list, list->value, list->next);
+        printf("Location %p\nPhrase: \"%d\"\nNext: %p\n\n", list, list->value, list->next);
         list = list->next;
     }
     printf("+---------------------+\n\n");
