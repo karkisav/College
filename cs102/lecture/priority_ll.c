@@ -11,7 +11,7 @@ typedef struct node
 }node;
 
 void insertion(node *list);
-//void deletion(node *list);
+void deletion(node *list);
 bool unload(node *list);
 void display(node *list);
 
@@ -19,6 +19,7 @@ int main(void)
 {
     node *list = NULL;
     int choice;
+
     printf("-----------Enter the operation -----------\n");
     printf(" 1.Insertion\n 2.Deletion\n 3. Display\n 4. Exit{free\n");
     printf("Enter the operation number: ");
@@ -53,6 +54,7 @@ int main(void)
 void insertion(node *list)
 {
     int value, priority;
+    node *ptr = list;
     printf("Enter your value to be stored: ");
     scanf("%d", &value);
 
@@ -60,23 +62,43 @@ void insertion(node *list)
     scanf("%d", &priority);
 
     node *n = malloc(sizeof(node));
+    if ( n == NULL)
+    {
+        printf("Error no more space left!\n");
+        return 1;
+    }
+
     n->value = value;
     n->priority = priority;
 
-    if(n->priority > list->next->priority)
+    if(list == NULL)
+    {
+        list = n;
+        return;
+    }
+
+    if(n->priority >= list->next->priority)
     {
         n->next = list;
-        n = list;
+        list = n;
     }
     else
     {
-        for(list; list->next->next != NULL; list = list->next)
+        for(ptr; ptr != NULL; ptr = ptr->next)
         {
-            if(n->priority > list->next->priority)
+            if(ptr->next == NULL)
             {
-                n->next = list->next;
-                n = list;
+                n->next = NULL;
+                ptr->next = n;
+                return;
             }
+
+            if(n->priority >= ptr->next->priority)
+            {
+                n->next = ptr->next;
+                ptr->next = n;
+                return;
+             }
         }
     }
 }
