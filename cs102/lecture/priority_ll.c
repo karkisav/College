@@ -32,7 +32,7 @@ int main(void)
                 insertion(list);
                 break;
             case 2:
-                //deletion(list);
+                deletion(list);
                 break;
             case 3:
                 display(list);
@@ -60,13 +60,24 @@ void insertion(node *list)
     scanf("%d", &priority);
 
     node *n = malloc(sizeof(node));
+    n->value = value;
+    n->priority = priority;
 
-    if(n->priority < n->next->priority)
+    if(n->priority > list->next->priority)
     {
-         n->value = value;
-        n->priority = priority;
         n->next = list;
         n = list;
+    }
+    else
+    {
+        for(list; list->next->next != NULL; list = list->next)
+        {
+            if(n->priority > list->next->priority)
+            {
+                n->next = list->next;
+                n = list;
+            }
+        }
     }
 }
 
@@ -75,10 +86,30 @@ void display(node *list)
     printf("\n+-- List Visualizer --+\n\n");
     while (list != NULL)
     {
-        printf("Location %p\nPhrase: \"%d\"\nNext: %p\n\n", list, list->value, list->next);
+        printf("Location %p\nValue: \"%d\"\nNext: %p\n\n", list, list->value, list->next);
         list = list->next;
     }
     printf("+---------------------+\n\n");
+}
+
+void deleteion(node *list)
+{
+    node *ptr = list->next;
+    if(ptr == NULL)
+        return;
+
+    if(ptr->next == NULL)
+    {
+        free(ptr);
+        return;
+    }
+    while(ptr->next->next != NULL)
+    {
+        ptr = ptr->next;
+    }
+    printf("The number to be deleted from the list is: %d", ptr->next->value);
+    free(ptr->next);
+    ptr->next = NULL;
 }
 
 bool unload(node *list)
@@ -91,29 +122,4 @@ bool unload(node *list)
         list = ptr;
     }
     return true;
-}
-
-void deleteion(node *list)
-{
-    node *ptr = list->next;
-    if(ptr == NULL)
-    {
-        return 1;
-    }
-    node *tptr = ptr;
-    node *xptr = NULL;
-    while(ptr != NULL)
-    {   
-        xptr = tptr;
-        tptr = ptr;
-        ptr = ptr->next;
-    }
-    printf("The number to be deleted from the list is: %d", tptr->value);
-    if(xptr == NULL)
-    {
-        free(tptr);
-        return 1;
-    }
-    xptr->next = NULL;
-    free(tptr);
 }
