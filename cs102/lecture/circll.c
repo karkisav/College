@@ -12,6 +12,6 @@ typedef struct node
 
 int main(void)
 {//😒
-    int count;s
+    int count;
     for(ptr; ptr!)
 }
