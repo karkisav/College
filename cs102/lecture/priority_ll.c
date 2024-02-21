@@ -10,6 +10,8 @@ typedef struct node
     struct node* next;
 }node;
 
+node *list = NULL;
+
 void insertion(node *list);
 void deletion(node *list);
 bool unload(node *list);
@@ -17,13 +19,12 @@ void display(node *list);
 
 int main(void)
 {
-    node *list = NULL;
     int choice;
 
     printf("-----------Enter the operation -----------\n");
-    printf(" 1.Insertion\n 2.Deletion\n 3. Display\n 4. Exit{free\n");
+    printf(" 1.Insertion\n 2.Deletion\n 3.Display\n 4.Exit{free\n");
     printf("Enter the operation number: ");
-    scanf("%d", &choice);
+    scanf(" %d", &choice);
     
     do
     {
@@ -38,17 +39,20 @@ int main(void)
             case 3:
                 display(list);
                 break;
+            case 4:
+                if (!unload(list))
+                {
+                    printf("Error freeing the list.\n");
+                    return 1;
+                }
+                printf("Freed the list.\n");
+                return 0;
+            default:
+                printf("Enter valid option!");
+                break;
         }
     } while (choice != 4);
     
-    if (!unload(list))
-    {
-        printf("Error freeing the list.\n");
-        return 1;
-    }
-
-    printf("Freed the list.\n");
-    return 0;
 }
 
 void insertion(node *list)
@@ -58,49 +62,35 @@ void insertion(node *list)
     printf("Enter your value to be stored: ");
     scanf("%d", &value);
 
-    printf("Enter the priorty: ");
+    printf("Enter the priority: ");
     scanf("%d", &priority);
 
     node *n = malloc(sizeof(node));
-    if ( n == NULL)
+    if (n == NULL)
     {
         printf("Error no more space left!\n");
-        return 1;
+        return;
     }
 
     n->value = value;
     n->priority = priority;
+    n->next = NULL;
 
-    if(list == NULL)
+    if (list == NULL || priority > list->priority)
     {
-        list = n;
+        n->next = list;
+        list = n; // Change made to the list pointer
         return;
     }
 
-    if(n->priority >= list->next->priority)
+    while (ptr->next != NULL && priority <= ptr->next->priority)
     {
-        n->next = list;
-        list = n;
+        ptr = ptr->next;
     }
-    else
-    {
-        for(ptr; ptr != NULL; ptr = ptr->next)
-        {
-            if(ptr->next == NULL)
-            {
-                n->next = NULL;
-                ptr->next = n;
-                return;
-            }
 
-            if(n->priority >= ptr->next->priority)
-            {
-                n->next = ptr->next;
-                ptr->next = n;
-                return;
-             }
-        }
-    }
+    n->next = ptr->next;
+    ptr->next = n;
+    return;
 }
 
 void display(node *list)
@@ -108,24 +98,28 @@ void display(node *list)
     printf("\n+-- List Visualizer --+\n\n");
     while (list != NULL)
     {
-        printf("Location %p\nValue: \"%d\"\nNext: %p\n\n", list, list->value, list->next);
+        printf("Location %p\nValue: \"%d\"\nPriority: \"%d\"\nNext: %p\n\n", list, list->value, list->priority, list->next);
         list = list->next;
     }
     printf("+---------------------+\n\n");
 }
 
-void deleteion(node *list)
+void deletion(node *list)
 {
-    node *ptr = list->next;
-    if(ptr == NULL)
-        return;
-
-    if(ptr->next == NULL)
+    if (list == NULL)
     {
-        free(ptr);
+        printf("The list is empty\n");
         return;
     }
-    while(ptr->next->next != NULL)
+    node *ptr = list;
+
+    if (list->next == NULL)
+    {
+        free(list);
+        list = NULL;
+        return;
+    }
+    while(ptr->next != NULL && ptr->next->next != NULL)
     {
         ptr = ptr->next;
     }
@@ -136,12 +130,12 @@ void deleteion(node *list)
 
 bool unload(node *list)
 {
-    node *ptr = list->next;
-    while(ptr != NULL)
+    node *ptr;
+    while(list != NULL)
     {
-        ptr = list->next;
+        ptr = list;
+        list = list->next;
         free(list);
-        list = ptr;
     }
     return true;
 }
