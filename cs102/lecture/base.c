@@ -28,7 +28,8 @@ int main(void)
         r = tmp % base;
         insert(r, base);
     } while (tmp != 0);
-    
+
+    display();
 
 }
 
@@ -39,4 +40,18 @@ void insert(int r, int base)
     n->digit = key[r];
     n->next = list;
     list = n;
+}
+
+void display()
+{
+    node *ptr;
+    for(ptr = list; ptr != NULL; ptr = ptr->next)
+    {
+        printf("%c\t", ptr->digit);
+    }
+    printf("\n");
+    for(ptr = list; ptr != NULL; ptr = ptr->next)
+    {
+        printf("%d\t", ptr->base);
+    }
 }
