@@ -6,13 +6,15 @@ typedef struct node
 {
     int base;
     char digit;
-    node *next;
+    struct node *next;
 }node;
 
 node *list = NULL;
-char key[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C'};
+char key[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 
+void display();
 void insert(int r, int base);
+
 int main(void)
 {
     int base, tmp, num , r;
@@ -27,6 +29,7 @@ int main(void)
     {
         r = tmp % base;
         insert(r, base);
+        tmp /= base;
     } while (tmp != 0);
 
     display();
@@ -54,4 +57,5 @@ void display()
     {
         printf("%d\t", ptr->base);
     }
+    return;
 }
