@@ -118,17 +118,12 @@ void print(Graph *graph, int n) {
 }
 
 int main() {
-    int numVertices = 6;
+    int numVertices = 4;
     Graph* graph = createGraph(numVertices);
 
-    addEdge(graph, 1, 2);
-    addEdge(graph, 1, 4);
-    addEdge(graph, 2, 1);
-    addEdge(graph, 2, 5);
+    addEdge(graph, 0, 1);
+    addEdge(graph, 0, 2);
     addEdge(graph, 2, 3);
-    addEdge(graph, 3, 4);
-    addEdge(graph, 3, 5);
-    addEdge(graph, 5, 3);
 
     print(graph, numVertices);
 

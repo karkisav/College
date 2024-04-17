@@ -26,6 +26,7 @@ int main() {
     printf("Enter the adjacency matrix for the graph:\n");
     for (int i = 0; i < numVertices; i++) {
         for (int j = 0; j < numVertices; j++) {
+            printf("a[%d][%d]: ", i, j);
             scanf("%d", &graph->adjMatrix[i][j]);
         }
     }
@@ -106,6 +107,10 @@ void bfs(Graph* graph, int startVertex) {
                 queue[++rear] = i;
             }
         }
+    }
+
+    for (int i = 0; i < graph->numVertices; i++) {
+        printf("|%d| ", queue[i]);
     }
 
     free(queue);
