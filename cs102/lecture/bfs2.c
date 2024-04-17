@@ -1,17 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h> // For boolean data type
+#include <stdbool.h>
 
-// Structure to represent a graph
 typedef struct {
     int numVertices;
     int** adjMatrix;
     bool* visited;
 } Graph;
 
-// Function prototypes
 Graph* createGraph(int vertices);
-void addEdge(Graph* graph, int src, int dest);
 void bfs(Graph* graph, int startVertex);
 void destroyGraph(Graph* graph);
 
@@ -69,16 +66,6 @@ Graph* createGraph(int vertices) {
     }
 
     return graph;
-}
-
-
-void addEdge(Graph* graph, int src, int dest) {
-    if (src >= 0 && src < graph->numVertices && dest >= 0 && dest < graph->numVertices) {
-        graph->adjMatrix[src][dest] = 1;
-        graph->adjMatrix[dest][src] = 1; // For undirected graph
-    } else {
-        printf("Invalid vertex indices\n");
-    }
 }
 
 void bfs(Graph* graph, int startVertex) {
