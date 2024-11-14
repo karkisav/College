@@ -3,3 +3,4 @@ cs102/lecture/.vscode/launch.json
 .vscode
 linear
 binary
+*.class
