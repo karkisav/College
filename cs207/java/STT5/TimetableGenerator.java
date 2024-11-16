@@ -1,6 +1,10 @@
 import java.util.*;
+import java.util.List;
 import java.io.*;
 import java.nio.file.*;
+import java.awt.*;
+import java.awt.image.*;
+import javax.imageio.*;
 
 class Course {
     String code;
@@ -208,41 +212,303 @@ class Timetable {
             System.err.println("Error writing to CSV file: " + e.getMessage());
         }
     }
+    public void exportToImage(String filename, int semester) {
+        ImageGenerator.generateTimetableImage(schedule, courses, filename, semester);
+    }
+}
+
+class ImageGenerator {
+    private static final Color HEADER_BG = new Color(51, 51, 51);
+    private static final Color CELL_BG = new Color(255, 255, 255);
+    private static final Color LECTURE_COLOR = new Color(200, 230, 255);
+    private static final Color TUTORIAL_COLOR = new Color(255, 230, 200);
+    private static final Color LAB_COLOR = new Color(200, 255, 200);
+    private static final Color TEXT_COLOR = new Color(51, 51, 51);
+    private static final Color HEADER_TEXT = new Color(255, 255, 255);
+    private static final Font HEADER_FONT = new Font("Arial", Font.BOLD, 16);
+    private static final Font CELL_FONT = new Font("Arial", Font.PLAIN, 12);
+    private static final Font LEGEND_FONT = new Font("Arial", Font.PLAIN, 14);
+    private static final int CELL_HEIGHT = 60;
+    private static final int CELL_WIDTH = 200;
+    private static final int TIME_COLUMN_WIDTH = 80;
+    private static final int LEGEND_HEIGHT = 200;
+
+    public static void generateTimetableImage(TimeSlot[][] schedule, List<Course> courses, String outputPath, int semester) {
+        int width = TIME_COLUMN_WIDTH + (CELL_WIDTH * 5);
+        int height = (CELL_HEIGHT * (17 - 9 + 1)) + LEGEND_HEIGHT;
+        
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = image.createGraphics();
+        
+        // Enable anti-aliasing
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        
+        // Fill background
+        g2d.setColor(CELL_BG);
+        g2d.fillRect(0, 0, width, height);
+        
+        // Draw title
+        g2d.setColor(HEADER_BG);
+        g2d.setFont(new Font("Arial", Font.BOLD, 24));
+        g2d.fillRect(0, 0, width, CELL_HEIGHT);
+        g2d.setColor(HEADER_TEXT);
+        String title = "Semester " + semester + " Timetable";
+        FontMetrics titleMetrics = g2d.getFontMetrics();
+        g2d.drawString(title, (width - titleMetrics.stringWidth(title)) / 2, CELL_HEIGHT / 2 + titleMetrics.getHeight() / 4);
+        
+        // Draw day headers
+        g2d.setFont(HEADER_FONT);
+        String[] days = {"Time", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
+        for (int i = 0; i < days.length; i++) {
+            int x = (i == 0) ? 0 : TIME_COLUMN_WIDTH + (i - 1) * CELL_WIDTH;
+            int w = (i == 0) ? TIME_COLUMN_WIDTH : CELL_WIDTH;
+            
+            g2d.setColor(HEADER_BG);
+            g2d.fillRect(x, CELL_HEIGHT, w, CELL_HEIGHT);
+            
+            g2d.setColor(HEADER_TEXT);
+            FontMetrics fm = g2d.getFontMetrics();
+            g2d.drawString(days[i], x + (w - fm.stringWidth(days[i])) / 2, 
+                          CELL_HEIGHT + CELL_HEIGHT / 2 + fm.getHeight() / 4);
+        }
+        
+        // Draw time slots and schedule
+        g2d.setFont(CELL_FONT);
+        for (int hour = 0; hour < 17 - 9; hour++) {
+            // Draw time
+            int y = (hour + 2) * CELL_HEIGHT;
+            g2d.setColor(HEADER_BG);
+            g2d.fillRect(0, y, TIME_COLUMN_WIDTH, CELL_HEIGHT);
+            g2d.setColor(HEADER_TEXT);
+            String time = String.format("%02d:00", hour + 9);
+            FontMetrics fm = g2d.getFontMetrics();
+            g2d.drawString(time, (TIME_COLUMN_WIDTH - fm.stringWidth(time)) / 2, 
+                          y + CELL_HEIGHT / 2 + fm.getHeight() / 4);
+            
+            // Draw schedule cells
+            for (int day = 0; day < 5; day++) {
+                int x = TIME_COLUMN_WIDTH + day * CELL_WIDTH;
+                TimeSlot slot = schedule[day][hour];
+                
+                // Draw cell background
+                g2d.setColor(CELL_BG);
+                g2d.fillRect(x, y, CELL_WIDTH, CELL_HEIGHT);
+                g2d.setColor(Color.LIGHT_GRAY);
+                g2d.drawRect(x, y, CELL_WIDTH, CELL_HEIGHT);
+                
+                if (slot != null) {
+                    // Set background color based on type
+                    switch (slot.type) {
+                        case "Lecture":
+                            g2d.setColor(LECTURE_COLOR);
+                            break;
+                        case "Tutorial":
+                            g2d.setColor(TUTORIAL_COLOR);
+                            break;
+                        case "Lab":
+                            g2d.setColor(LAB_COLOR);
+                            break;
+                    }
+                    g2d.fillRect(x + 1, y + 1, CELL_WIDTH - 2, CELL_HEIGHT - 2);
+                    
+                    // Draw text
+                    g2d.setColor(TEXT_COLOR);
+                    String[] lines = {
+                        slot.courseCode,
+                        "(" + slot.type + ")",
+                        slot.faculty
+                    };
+                    
+                    int textY = y + CELL_HEIGHT / 4;
+                    for (String line : lines) {
+                        if (line != null && !line.isEmpty()) {
+                            g2d.drawString(line, x + 5, textY);
+                            textY += fm.getHeight();
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Draw legend
+        int legendY = (17 - 9 + 2) * CELL_HEIGHT;
+        g2d.setFont(LEGEND_FONT);
+        g2d.setColor(HEADER_BG);
+        g2d.fillRect(0, legendY, width, 40);
+        g2d.setColor(HEADER_TEXT);
+        g2d.drawString("Legend:", 10, legendY + 25);
+        
+        // Draw color boxes for class types
+        int boxSize = 20;
+        int legendX = 100;
+        g2d.setColor(LECTURE_COLOR);
+        g2d.fillRect(legendX, legendY + 10, boxSize, boxSize);
+        g2d.setColor(TEXT_COLOR);
+        g2d.drawString("Lecture", legendX + boxSize + 10, legendY + 25);
+        
+        legendX += 150;
+        g2d.setColor(TUTORIAL_COLOR);
+        g2d.fillRect(legendX, legendY + 10, boxSize, boxSize);
+        g2d.setColor(TEXT_COLOR);
+        g2d.drawString("Tutorial", legendX + boxSize + 10, legendY + 25);
+        
+        legendX += 150;
+        g2d.setColor(LAB_COLOR);
+        g2d.fillRect(legendX, legendY + 10, boxSize, boxSize);
+        g2d.setColor(TEXT_COLOR);
+        g2d.drawString("Lab", legendX + boxSize + 10, legendY + 25);
+        
+        // Draw course details
+        g2d.setColor(TEXT_COLOR);
+        int courseY = legendY + 60;
+        g2d.setFont(new Font("Arial", Font.BOLD, 16));
+        g2d.drawString("Course Details:", 10, courseY);
+        courseY += 25;
+        
+        g2d.setFont(LEGEND_FONT);
+        for (Course course : courses) {
+            String details = String.format("%s - %s (%s)", course.code, course.name, course.faculty);
+            g2d.drawString(details, 20, courseY);
+            courseY += 20;
+        }
+        
+        g2d.dispose();
+        
+        try {
+            ImageIO.write(image, "PNG", new File(outputPath));
+        } catch (IOException e) {
+            System.err.println("Error saving timetable image: " + e.getMessage());
+        }
+    }
 }
 
 public class TimetableGenerator {
-    public static void main(String[] args) {
+    private static Map<Integer, List<Course>> parseCoursesFromCSV(String filepath) {
         Map<Integer, List<Course>> semesterCourses = new HashMap<>();
+        int currentSemester = 0;
+        int courseCounter = 1;
+        int lineNumber = 0;
 
-        // Semester 1 courses
-        semesterCourses.put(1, Arrays.asList(
-            new Course("STAT101", "Statistics", 2, "2-0-0-0-2", "Dr. Ramesh Athe", "DSAI", "Combined"),
-            new Course("DSAI101", "Introduction to DS and AI", 2, "2-0-0-0-2", "Dr. Abdul Wahid", "CSE", "Combined"),
-            new Course("PROB101", "Probability", 2, "2-0-0-0-2", "Dr. Lakshman", "HSS", "Combined"),
-            new Course("DD101", "Digital Design", 2, "3-0-2-0-2", "Dr. Jagadeesha R Bhat", "ECE", "Combined"),
-            new Course("CSE101", "Problem Solving through Programming", 4, "3-0-2-0-4", "Dr. Sunil P V", "CSE", "2 sections"),
-            new Course("ENG101", "English Language and Communication", 3, "3-0-0-0-3", "Dr. Rajesh", "HSS", "2 sections")
-        ));
+        try (BufferedReader br = new BufferedReader(new FileReader(filepath))) {
+            String line;
+            // Skip header
+            br.readLine();
+            lineNumber++;
+            
+            while ((line = br.readLine()) != null) {
+                lineNumber++;
+                // Clean the line of any problematic characters
+                line = line.replace("`", "'").trim();
+                if (line.isEmpty()) continue;
+                
+                // Debug output
+                System.out.println("\nProcessing line " + lineNumber + ": " + line);
+                
+                // Split the CSV line, handling quotes properly
+                String[] values = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
+                for (int i = 0; i < values.length; i++) {
+                    values[i] = values[i].trim().replace("\"", "");
+                }
+                
+                // Check if this is a semester marker
+                if (line.trim().startsWith("Sem")) {
+                    try {
+                        String semStr = line.split(",")[0].replace("Sem", "").trim();
+                        currentSemester = Integer.parseInt(semStr);
+                        semesterCourses.putIfAbsent(currentSemester, new ArrayList<>());
+                        courseCounter = 1;
+                        System.out.println("Found semester " + currentSemester);
+                    } catch (NumberFormatException e) {
+                        System.err.println("Warning: Invalid semester format at line " + lineNumber + ": " + line);
+                    }
+                    continue;
+                }
 
-        // Semester 3 courses
-        semesterCourses.put(3, Arrays.asList(
-            new Course("CS201", "Discrete Mathematics", 4, "3-1-0-0-4", "Dr. Animesh Roy", "CSE", "2 sections"),
-            new Course("CS207", "OOP", 4, "3-0-2-0-4", "Dr. Pramod", "CSE", "2 sections"),
-            new Course("CS208", "Computer Architecture", 4, "3-0-2-0-4", "Dr. Prabhu Prasad B M", "CSE", "2 sections"),
-            new Course("CS202", "DAA", 5, "3-1-2-0-4", "Dr. Malay", "CSE", "2 sections"),
-            new Course("MA201", "Probability", 4, "3-1-0-0-4", "Dr. Anand", "HSS", "2 sections"),
-            new Course(null, "Industrial Social Psychology", 3, "3-0-0-0-3", "Dr. Navyashree", "HSS", "2 sections")
-        ));
+                // Skip lines without a current semester or serial number
+                if (currentSemester == 0 || values.length < 1) {
+                    continue;
+                }
 
-        // Semester 5 courses
-        semesterCourses.put(5, Arrays.asList(
-            new Course("CS309", "Statistics for Computer Science", 4, "3-1-0-0-4", "Dr. Ramesh Athe", "DSAI and CSE", "2 sections"),
-            new Course("CS303", "Computer Networks", 5, "3-1-2-0-5", "Dr. C B Akki", "CSE", "2 sections"),
-            new Course("CS304", "Artificial Intelligence", 4, "3-1-0-0-4", "Dr. Krishendu", "CSE", "2 sections"),
-            new Course("CS305", "Graph Theory", 4, "4-0-0-0-4", "Dr. Pavan", "CSE", "2 sections"),
-            new Course("CS308", "Cryptography and Information Security", 4, "4-0-0-0-4", "Dr. Rajendra Hegadi", "DSAI", null),
-            new Course("HS101", "Environmental studies", 2, "0-0-0-8-2", null, null, null)
-        ));
+                // Try to parse the serial number to verify it's a course line
+                try {
+                    // Skip if first column is empty or not a number
+                    if (values[0].isEmpty() || !values[0].matches("\\d+")) {
+                        continue;
+                    }
+                    
+                    // Extract course information with safe access
+                    String code = values.length > 1 ? values[1].trim() : "";
+                    if (code.isEmpty()) {
+                        code = String.format("TEMP%d_%d", currentSemester, courseCounter++);
+                    }
+
+                    String name = values.length > 2 ? values[2].trim() : "Unnamed Course";
+                    if (name.isEmpty()) {
+                        name = "Unnamed Course " + code;
+                    }
+
+                    // Parse credits with safety check
+                    int credits = 2; // Default credits
+                    if (values.length > 3 && !values[3].isEmpty()) {
+                        try {
+                            credits = Integer.parseInt(values[3].trim());
+                        } catch (NumberFormatException e) {
+                            System.err.println("Warning: Invalid credits format for " + name + ", using default (2)");
+                        }
+                    }
+
+                    // Handle LTPSC format
+                    String ltpsc = values.length > 4 ? values[4].trim() : "";
+                    if (ltpsc.isEmpty()) {
+                        ltpsc = credits + "-0-0-0-" + credits;
+                        System.out.println("Using default LTPSC (" + ltpsc + ") for course: " + name);
+                    }
+
+                    // Handle faculty - clean up newlines
+                    String faculty = values.length > 5 ? values[5].trim().replace("\n", " / ") : "TBD";
+                    faculty = faculty.replace("(", "").replace(")", ""); // Remove parentheses
+
+                    // Handle department
+                    String department = values.length > 6 ? values[6].trim() : "TBD";
+                    if (department.isEmpty()) department = "TBD";
+
+                    // Handle sections
+                    String sections = values.length > 7 ? values[7].trim() : "Combined";
+                    if (sections.isEmpty()) sections = "Combined";
+
+                    // Create and add the course
+                    Course course = new Course(code, name, credits, ltpsc, faculty, department, sections);
+                    semesterCourses.get(currentSemester).add(course);
+                    
+                    System.out.println("Added course: " + course.code + " - " + course.name);
+                    
+                } catch (NumberFormatException e) {
+                    System.err.println("Warning: Skipping invalid line " + lineNumber + ": " + line);
+                    continue;
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Error reading CSV file: " + e.getMessage());
+        }
+
+        // Validate the results
+        for (Map.Entry<Integer, List<Course>> entry : semesterCourses.entrySet()) {
+            System.out.println("\nSemester " + entry.getKey() + " has " + entry.getValue().size() + " courses");
+        }
+
+        return semesterCourses;
+    }
+
+    public static void main(String[] args) {
+        // Check if CSV file path is provided as command line argument
+        if (args.length < 1) {
+            System.out.println("Please provide the path to the courses CSV file as a command line argument.");
+            return;
+        }
+
+        String csvFilePath = args[0];
+        Map<Integer, List<Course>> semesterCourses = parseCoursesFromCSV(csvFilePath);
 
         // Create 'timetables' directory if it doesn't exist
         try {
@@ -255,10 +521,35 @@ public class TimetableGenerator {
         // Generate and export timetables for each semester
         for (Map.Entry<Integer, List<Course>> entry : semesterCourses.entrySet()) {
             int semester = entry.getKey();
+            List<Course> courses = entry.getValue();
+            
+            // Skip semesters with no courses
+            if (courses.isEmpty()) {
+                continue;
+            }
+
             System.out.println("\nSEMESTER " + semester + " TIMETABLE");
             System.out.println("=".repeat(110));
+            
+            // Print course details before generating timetable
+            System.out.println("\nCourse Details:");
+            System.out.println(String.format("%-10s %-40s %-8s %-12s %-30s %-20s %-15s",
+                "Code", "Name", "Credits", "L-T-P-S-C", "Faculty", "Department", "Sections"));
+            System.out.println("-".repeat(135));
+            
+            for (Course course : courses) {
+                System.out.println(String.format("%-10s %-40s %-8d %-12s %-30s %-20s %-15s",
+                    course.code,
+                    course.name,
+                    course.credits,
+                    course.ltpsc,
+                    course.faculty,
+                    course.department,
+                    course.sections));
+            }
+            System.out.println();
 
-            Timetable timetable = new Timetable(entry.getValue());
+            Timetable timetable = new Timetable(courses);
             timetable.generateTimetable();
             timetable.printTimetable();
             
@@ -266,6 +557,12 @@ public class TimetableGenerator {
             String filename = String.format("timetables/semester_%d_timetable.csv", semester);
             timetable.exportToCSV(filename, semester);
             System.out.println("\nTimetable exported to " + filename);
+
+
+            // Export to PNG
+            String imageFilename = String.format("timetables/semester_%d_timetable.png", semester);
+            timetable.exportToImage(imageFilename, semester);
+            System.out.println("Timetable image exported to " + imageFilename);
         }
     }
 }
