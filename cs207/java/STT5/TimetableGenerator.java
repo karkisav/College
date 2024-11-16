@@ -1,4 +1,6 @@
 import java.util.*;
+import java.io.*;
+import java.nio.file.*;
 
 class Course {
     String code;
@@ -36,12 +38,16 @@ class TimeSlot {
     int day; // 0-4 (Monday to Friday)
     int hour; // 9-16 (9 AM to 4 PM)
     String courseCode;
+    String courseName;  // Added course name for better readability
     String type; // "Lecture", "Tutorial", or "Lab"
+    String faculty;     // Added faculty information
 
-    public TimeSlot(int day, int hour, String courseCode, String type) {
+    public TimeSlot(int day, int hour, String courseCode, String courseName, String faculty, String type) {
         this.day = day;
         this.hour = hour;
         this.courseCode = courseCode;
+        this.courseName = courseName;
+        this.faculty = faculty;
         this.type = type;
     }
 }
@@ -69,7 +75,7 @@ class Timetable {
                     int day = rand.nextInt(5);
                     int hour = rand.nextInt(END_HOUR - START_HOUR - 2);
                     if (canScheduleLab(day, hour, course.practicalHours)) {
-                        scheduleLab(day, hour, course.practicalHours, course.code);
+                        scheduleLab(day, hour, course.practicalHours, course);
                         scheduled = true;
                     }
                 }
@@ -84,7 +90,7 @@ class Timetable {
                     int day = rand.nextInt(5);
                     int hour = rand.nextInt(END_HOUR - START_HOUR);
                     if (isSlotFree(day, hour)) {
-                        schedule[day][hour] = new TimeSlot(day, hour, course.code, "Lecture");
+                        schedule[day][hour] = new TimeSlot(day, hour, course.code, course.name, course.faculty, "Lecture");
                         scheduled = true;
                     }
                 }
@@ -99,7 +105,7 @@ class Timetable {
                     int day = rand.nextInt(5);
                     int hour = rand.nextInt(END_HOUR - START_HOUR);
                     if (isSlotFree(day, hour)) {
-                        schedule[day][hour] = new TimeSlot(day, hour, course.code, "Tutorial");
+                        schedule[day][hour] = new TimeSlot(day, hour, course.code, course.name, course.faculty, "Tutorial");
                         scheduled = true;
                     }
                 }
@@ -116,9 +122,9 @@ class Timetable {
         return true;
     }
 
-    private void scheduleLab(int day, int startHour, int duration, String courseCode) {
+    private void scheduleLab(int day, int startHour, int duration, Course course) {
         for (int i = 0; i < duration; i++) {
-            schedule[day][startHour + i] = new TimeSlot(day, startHour + i, courseCode, "Lab");
+            schedule[day][startHour + i] = new TimeSlot(day, startHour + i, course.code, course.name, course.faculty, "Lab");
         }
     }
 
@@ -148,12 +154,67 @@ class Timetable {
             System.out.println();
         }
     }
+
+    public void exportToCSV(String filename, int semester) {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(filename))) {
+            // Write header
+            writer.println("Semester " + semester + " Timetable");
+            writer.println();
+            
+            // Write day headers
+            writer.print("Time,");
+            writer.println(String.join(",", DAYS));
+
+            // Write schedule
+            for (int hour = 0; hour < END_HOUR - START_HOUR; hour++) {
+                StringBuilder line = new StringBuilder();
+                line.append(String.format("%02d:00,", hour + START_HOUR));
+
+                for (int day = 0; day < 5; day++) {
+                    TimeSlot slot = schedule[day][hour];
+                    if (slot == null) {
+                        line.append("-");
+                    } else {
+                        // Format: CourseCode (Type) - CourseName [Faculty]
+                        String entry = String.format("%s (%s) - %s", 
+                            slot.courseCode != null ? slot.courseCode : "N/A",
+                            slot.type,
+                            slot.courseName != null ? slot.courseName : "N/A");
+                        if (slot.faculty != null && !slot.faculty.isEmpty()) {
+                            entry += String.format(" [%s]", slot.faculty);
+                        }
+                        line.append(entry);
+                    }
+                    line.append(day < 4 ? "," : "");
+                }
+                writer.println(line);
+            }
+
+            // Add course details section
+            writer.println("\nCourse Details:");
+            writer.println("Code,Name,Credits,L-T-P-S-C,Faculty,Department,Sections");
+            for (Course course : courses) {
+                writer.printf("%s,%s,%d,%s,%s,%s,%s%n",
+                    course.code != null ? course.code : "N/A",
+                    course.name != null ? course.name : "N/A",
+                    course.credits,
+                    course.ltpsc != null ? course.ltpsc : "N/A",
+                    course.faculty != null ? course.faculty : "N/A",
+                    course.department != null ? course.department : "N/A",
+                    course.sections != null ? course.sections : "N/A"
+                );
+            }
+        } catch (IOException e) {
+            System.err.println("Error writing to CSV file: " + e.getMessage());
+        }
+    }
 }
 
 public class TimetableGenerator {
     public static void main(String[] args) {
         Map<Integer, List<Course>> semesterCourses = new HashMap<>();
 
+        // Semester 1 courses
         semesterCourses.put(1, Arrays.asList(
             new Course("STAT101", "Statistics", 2, "2-0-0-0-2", "Dr. Ramesh Athe", "DSAI", "Combined"),
             new Course("DSAI101", "Introduction to DS and AI", 2, "2-0-0-0-2", "Dr. Abdul Wahid", "CSE", "Combined"),
@@ -163,7 +224,7 @@ public class TimetableGenerator {
             new Course("ENG101", "English Language and Communication", 3, "3-0-0-0-3", "Dr. Rajesh", "HSS", "2 sections")
         ));
 
-
+        // Semester 3 courses
         semesterCourses.put(3, Arrays.asList(
             new Course("CS201", "Discrete Mathematics", 4, "3-1-0-0-4", "Dr. Animesh Roy", "CSE", "2 sections"),
             new Course("CS207", "OOP", 4, "3-0-2-0-4", "Dr. Pramod", "CSE", "2 sections"),
@@ -183,13 +244,28 @@ public class TimetableGenerator {
             new Course("HS101", "Environmental studies", 2, "0-0-0-8-2", null, null, null)
         ));
 
+        // Create 'timetables' directory if it doesn't exist
+        try {
+            Files.createDirectories(Paths.get("timetables"));
+        } catch (IOException e) {
+            System.err.println("Error creating timetables directory: " + e.getMessage());
+            return;
+        }
+
+        // Generate and export timetables for each semester
         for (Map.Entry<Integer, List<Course>> entry : semesterCourses.entrySet()) {
-            System.out.println("SEMESTER " + entry.getKey() + " TIMETABLE");
+            int semester = entry.getKey();
+            System.out.println("\nSEMESTER " + semester + " TIMETABLE");
             System.out.println("=".repeat(110));
 
             Timetable timetable = new Timetable(entry.getValue());
             timetable.generateTimetable();
             timetable.printTimetable();
+            
+            // Export to CSV
+            String filename = String.format("timetables/semester_%d_timetable.csv", semester);
+            timetable.exportToCSV(filename, semester);
+            System.out.println("\nTimetable exported to " + filename);
         }
     }
 }
