@@ -42,29 +42,33 @@ class TimeSlot {
     int day; // 0-4 (Monday to Friday)
     int hour; // 9-16 (9 AM to 4 PM)
     String courseCode;
-    String courseName;  // Added course name for better readability
+    String courseName;
     String type; // "Lecture", "Tutorial", or "Lab"
-    String faculty;     // Added faculty information
+    String faculty;
+    String section; // Added section information
 
-    public TimeSlot(int day, int hour, String courseCode, String courseName, String faculty, String type) {
+    public TimeSlot(int day, int hour, String courseCode, String courseName, String faculty, String type, String section) {
         this.day = day;
         this.hour = hour;
         this.courseCode = courseCode;
         this.courseName = courseName;
         this.faculty = faculty;
         this.type = type;
+        this.section = section;
     }
 }
 
 class Timetable {
     private List<Course> courses;
     private TimeSlot[][] schedule;
+    private String section; // Added section identifier
     private static final String[] DAYS = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
     private static final int START_HOUR = 9;
     private static final int END_HOUR = 17;
 
-    public Timetable(List<Course> courses) {
+    public Timetable(List<Course> courses, String section) {
         this.courses = courses;
+        this.section = section;
         this.schedule = new TimeSlot[5][END_HOUR - START_HOUR];
     }
 
@@ -94,7 +98,8 @@ class Timetable {
                     int day = rand.nextInt(5);
                     int hour = rand.nextInt(END_HOUR - START_HOUR);
                     if (isSlotFree(day, hour)) {
-                        schedule[day][hour] = new TimeSlot(day, hour, course.code, course.name, course.faculty, "Lecture");
+                        schedule[day][hour] = new TimeSlot(day, hour, course.code, course.name, 
+                            course.faculty, "Lecture", section);
                         scheduled = true;
                     }
                 }
@@ -109,7 +114,8 @@ class Timetable {
                     int day = rand.nextInt(5);
                     int hour = rand.nextInt(END_HOUR - START_HOUR);
                     if (isSlotFree(day, hour)) {
-                        schedule[day][hour] = new TimeSlot(day, hour, course.code, course.name, course.faculty, "Tutorial");
+                        schedule[day][hour] = new TimeSlot(day, hour, course.code, course.name, 
+                            course.faculty, "Tutorial", section);
                         scheduled = true;
                     }
                 }
@@ -128,7 +134,8 @@ class Timetable {
 
     private void scheduleLab(int day, int startHour, int duration, Course course) {
         for (int i = 0; i < duration; i++) {
-            schedule[day][startHour + i] = new TimeSlot(day, startHour + i, course.code, course.name, course.faculty, "Lab");
+            schedule[day][startHour + i] = new TimeSlot(day, startHour + i, course.code, 
+                course.name, course.faculty, "Lab", section);
         }
     }
 
@@ -137,6 +144,7 @@ class Timetable {
     }
 
     public void printTimetable() {
+        System.out.println("\nTIMETABLE FOR SECTION " + section);
         System.out.printf("%-10s", "Time");
         for (String day : DAYS) {
             System.out.printf("%-20s", day);
@@ -162,7 +170,7 @@ class Timetable {
     public void exportToCSV(String filename, int semester) {
         try (PrintWriter writer = new PrintWriter(new FileWriter(filename))) {
             // Write header
-            writer.println("Semester " + semester + " Timetable");
+            writer.println("Semester " + semester + " Timetable - Section " + section);
             writer.println();
             
             // Write day headers
@@ -196,7 +204,7 @@ class Timetable {
 
             // Add course details section
             writer.println("\nCourse Details:");
-            writer.println("Code,Name,Credits,L-T-P-S-C,Faculty,Department,Sections");
+            writer.println("Code,Name,Credits,L-T-P-S-C,Faculty,Department,Section");
             for (Course course : courses) {
                 writer.printf("%s,%s,%d,%s,%s,%s,%s%n",
                     course.code != null ? course.code : "N/A",
@@ -205,15 +213,16 @@ class Timetable {
                     course.ltpsc != null ? course.ltpsc : "N/A",
                     course.faculty != null ? course.faculty : "N/A",
                     course.department != null ? course.department : "N/A",
-                    course.sections != null ? course.sections : "N/A"
+                    section
                 );
             }
         } catch (IOException e) {
             System.err.println("Error writing to CSV file: " + e.getMessage());
         }
     }
+
     public void exportToImage(String filename, int semester) {
-        ImageGenerator.generateTimetableImage(schedule, courses, filename, semester);
+        ImageGenerator.generateTimetableImage(schedule, courses, filename, semester, section);
     }
 }
 
@@ -233,7 +242,7 @@ class ImageGenerator {
     private static final int TIME_COLUMN_WIDTH = 80;
     private static final int LEGEND_HEIGHT = 200;
 
-    public static void generateTimetableImage(TimeSlot[][] schedule, List<Course> courses, String outputPath, int semester) {
+    public static void generateTimetableImage(TimeSlot[][] schedule, List<Course> courses, String outputPath, int semester, String section) {
         int width = TIME_COLUMN_WIDTH + (CELL_WIDTH * 5);
         int height = (CELL_HEIGHT * (17 - 9 + 1)) + LEGEND_HEIGHT;
         
@@ -253,7 +262,7 @@ class ImageGenerator {
         g2d.setFont(new Font("Arial", Font.BOLD, 24));
         g2d.fillRect(0, 0, width, CELL_HEIGHT);
         g2d.setColor(HEADER_TEXT);
-        String title = "Semester " + semester + " Timetable";
+        String title = String.format("Semester %d Timetable - Section %s", semester, section);
         FontMetrics titleMetrics = g2d.getFontMetrics();
         g2d.drawString(title, (width - titleMetrics.stringWidth(title)) / 2, CELL_HEIGHT / 2 + titleMetrics.getHeight() / 4);
         
@@ -384,8 +393,9 @@ class ImageGenerator {
 }
 
 public class TimetableGenerator {
-    private static Map<Integer, List<Course>> parseCoursesFromCSV(String filepath) {
-        Map<Integer, List<Course>> semesterCourses = new HashMap<>();
+    private static Map<Integer, Map<String, List<Course>>> parseCoursesFromCSV(String filepath) {
+        // Map<Semester, Map<Section, List<Course>>>
+        Map<Integer, Map<String, List<Course>>> semesterSectionCourses = new HashMap<>();
         int currentSemester = 0;
         int courseCounter = 1;
         int lineNumber = 0;
@@ -398,46 +408,35 @@ public class TimetableGenerator {
             
             while ((line = br.readLine()) != null) {
                 lineNumber++;
-                // Clean the line of any problematic characters
                 line = line.replace("`", "'").trim();
                 if (line.isEmpty()) continue;
                 
-                // Debug output
-                System.out.println("\nProcessing line " + lineNumber + ": " + line);
-                
-                // Split the CSV line, handling quotes properly
                 String[] values = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
                 for (int i = 0; i < values.length; i++) {
                     values[i] = values[i].trim().replace("\"", "");
                 }
                 
-                // Check if this is a semester marker
                 if (line.trim().startsWith("Sem")) {
                     try {
                         String semStr = line.split(",")[0].replace("Sem", "").trim();
                         currentSemester = Integer.parseInt(semStr);
-                        semesterCourses.putIfAbsent(currentSemester, new ArrayList<>());
+                        semesterSectionCourses.putIfAbsent(currentSemester, new HashMap<>());
                         courseCounter = 1;
-                        System.out.println("Found semester " + currentSemester);
                     } catch (NumberFormatException e) {
-                        System.err.println("Warning: Invalid semester format at line " + lineNumber + ": " + line);
+                        System.err.println("Warning: Invalid semester format at line " + lineNumber);
                     }
                     continue;
                 }
 
-                // Skip lines without a current semester or serial number
                 if (currentSemester == 0 || values.length < 1) {
                     continue;
                 }
 
-                // Try to parse the serial number to verify it's a course line
                 try {
-                    // Skip if first column is empty or not a number
                     if (values[0].isEmpty() || !values[0].matches("\\d+")) {
                         continue;
                     }
                     
-                    // Extract course information with safe access
                     String code = values.length > 1 ? values[1].trim() : "";
                     if (code.isEmpty()) {
                         code = String.format("TEMP%d_%d", currentSemester, courseCounter++);
@@ -448,43 +447,37 @@ public class TimetableGenerator {
                         name = "Unnamed Course " + code;
                     }
 
-                    // Parse credits with safety check
-                    int credits = 2; // Default credits
+                    int credits = 2;
                     if (values.length > 3 && !values[3].isEmpty()) {
                         try {
                             credits = Integer.parseInt(values[3].trim());
                         } catch (NumberFormatException e) {
-                            System.err.println("Warning: Invalid credits format for " + name + ", using default (2)");
+                            System.err.println("Warning: Invalid credits format for " + name);
                         }
                     }
 
-                    // Handle LTPSC format
                     String ltpsc = values.length > 4 ? values[4].trim() : "";
                     if (ltpsc.isEmpty()) {
                         ltpsc = credits + "-0-0-0-" + credits;
-                        System.out.println("Using default LTPSC (" + ltpsc + ") for course: " + name);
                     }
 
-                    // Handle faculty - clean up newlines
                     String faculty = values.length > 5 ? values[5].trim().replace("\n", " / ") : "TBD";
-                    faculty = faculty.replace("(", "").replace(")", ""); // Remove parentheses
+                    faculty = faculty.replace("(", "").replace(")", "");
 
-                    // Handle department
                     String department = values.length > 6 ? values[6].trim() : "TBD";
                     if (department.isEmpty()) department = "TBD";
 
-                    // Handle sections
-                    String sections = values.length > 7 ? values[7].trim() : "Combined";
-                    if (sections.isEmpty()) sections = "Combined";
+                    // Create course for both sections
+                    Course course = new Course(code, name, credits, ltpsc, faculty, department, "A");
+                    semesterSectionCourses.get(currentSemester).putIfAbsent("A", new ArrayList<>());
+                    semesterSectionCourses.get(currentSemester).get("A").add(course);
 
-                    // Create and add the course
-                    Course course = new Course(code, name, credits, ltpsc, faculty, department, sections);
-                    semesterCourses.get(currentSemester).add(course);
-                    
-                    System.out.println("Added course: " + course.code + " - " + course.name);
+                    Course courseB = new Course(code, name, credits, ltpsc, faculty, department, "B");
+                    semesterSectionCourses.get(currentSemester).putIfAbsent("B", new ArrayList<>());
+                    semesterSectionCourses.get(currentSemester).get("B").add(courseB);
                     
                 } catch (NumberFormatException e) {
-                    System.err.println("Warning: Skipping invalid line " + lineNumber + ": " + line);
+                    System.err.println("Warning: Skipping invalid line " + lineNumber);
                     continue;
                 }
             }
@@ -492,25 +485,18 @@ public class TimetableGenerator {
             System.err.println("Error reading CSV file: " + e.getMessage());
         }
 
-        // Validate the results
-        for (Map.Entry<Integer, List<Course>> entry : semesterCourses.entrySet()) {
-            System.out.println("\nSemester " + entry.getKey() + " has " + entry.getValue().size() + " courses");
-        }
-
-        return semesterCourses;
+        return semesterSectionCourses;
     }
 
     public static void main(String[] args) {
-        // Check if CSV file path is provided as command line argument
         if (args.length < 1) {
             System.out.println("Please provide the path to the courses CSV file as a command line argument.");
             return;
         }
 
         String csvFilePath = args[0];
-        Map<Integer, List<Course>> semesterCourses = parseCoursesFromCSV(csvFilePath);
+        Map<Integer, Map<String, List<Course>>> semesterSectionCourses = parseCoursesFromCSV(csvFilePath);
 
-        // Create 'timetables' directory if it doesn't exist
         try {
             Files.createDirectories(Paths.get("timetables"));
         } catch (IOException e) {
@@ -518,51 +504,54 @@ public class TimetableGenerator {
             return;
         }
 
-        // Generate and export timetables for each semester
-        for (Map.Entry<Integer, List<Course>> entry : semesterCourses.entrySet()) {
-            int semester = entry.getKey();
-            List<Course> courses = entry.getValue();
+        // Generate timetables for each semester and section
+        for (Map.Entry<Integer, Map<String, List<Course>>> semesterEntry : semesterSectionCourses.entrySet()) {
+            int semester = semesterEntry.getKey();
+            Map<String, List<Course>> sectionCourses = semesterEntry.getValue();
             
-            // Skip semesters with no courses
-            if (courses.isEmpty()) {
-                continue;
+            for (Map.Entry<String, List<Course>> sectionEntry : sectionCourses.entrySet()) {
+                String section = sectionEntry.getKey();
+                List<Course> courses = sectionEntry.getValue();
+                
+                if (courses.isEmpty()) {
+                    continue;
+                }
+
+                System.out.println("\nSEMESTER " + semester + " - SECTION " + section + " TIMETABLE");
+                System.out.println("=".repeat(110));
+                
+                // Print course details
+                System.out.println("\nCourse Details:");
+                System.out.println(String.format("%-10s %-40s %-8s %-12s %-30s %-20s %-15s",
+                    "Code", "Name", "Credits", "L-T-P-S-C", "Faculty", "Department", "Section"));
+                System.out.println("-".repeat(135));
+                
+                for (Course course : courses) {
+                    System.out.println(String.format("%-10s %-40s %-8d %-12s %-30s %-20s %-15s",
+                        course.code,
+                        course.name,
+                        course.credits,
+                        course.ltpsc,
+                        course.faculty,
+                        course.department,
+                        section));
+                }
+                System.out.println();
+
+                Timetable timetable = new Timetable(courses, section);
+                timetable.generateTimetable();
+                timetable.printTimetable();
+                
+                // Export to CSV
+                String filename = String.format("timetables/semester_%d_section_%s_timetable.csv", semester, section);
+                timetable.exportToCSV(filename, semester);
+                System.out.println("\nTimetable exported to " + filename);
+
+                // Export to PNG
+                String imageFilename = String.format("timetables/semester_%d_section_%s_timetable.png", semester, section);
+                timetable.exportToImage(imageFilename, semester);
+                System.out.println("Timetable image exported to " + imageFilename);
             }
-
-            System.out.println("\nSEMESTER " + semester + " TIMETABLE");
-            System.out.println("=".repeat(110));
-            
-            // Print course details before generating timetable
-            System.out.println("\nCourse Details:");
-            System.out.println(String.format("%-10s %-40s %-8s %-12s %-30s %-20s %-15s",
-                "Code", "Name", "Credits", "L-T-P-S-C", "Faculty", "Department", "Sections"));
-            System.out.println("-".repeat(135));
-            
-            for (Course course : courses) {
-                System.out.println(String.format("%-10s %-40s %-8d %-12s %-30s %-20s %-15s",
-                    course.code,
-                    course.name,
-                    course.credits,
-                    course.ltpsc,
-                    course.faculty,
-                    course.department,
-                    course.sections));
-            }
-            System.out.println();
-
-            Timetable timetable = new Timetable(courses);
-            timetable.generateTimetable();
-            timetable.printTimetable();
-            
-            // Export to CSV
-            String filename = String.format("timetables/semester_%d_timetable.csv", semester);
-            timetable.exportToCSV(filename, semester);
-            System.out.println("\nTimetable exported to " + filename);
-
-
-            // Export to PNG
-            String imageFilename = String.format("timetables/semester_%d_timetable.png", semester);
-            timetable.exportToImage(imageFilename, semester);
-            System.out.println("Timetable image exported to " + imageFilename);
         }
     }
 }
