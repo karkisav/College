@@ -179,7 +179,7 @@ public class TimetableGenerator {
             new Course("CS303", "Computer Networks", 5, "3-1-2-0-5", "Dr. C B Akki", "CSE", "2 sections"),
             new Course("CS304", "Artificial Intelligence", 4, "3-1-0-0-4", "Dr. Krishendu", "CSE", "2 sections"),
             new Course("CS305", "Graph Theory", 4, "4-0-0-0-4", "Dr. Pavan", "CSE", "2 sections"),
-            new Course("CS308", "Cryptography and Information Security", 4, "4-0-0-0-4", "Dr. Rajendra Hegadi", "DSAI", null),
+            new Course("CS30", "Cryptography and Information Security", 4, "4-0-0-0-4", "Dr. Rajendra Hegadi", "DSAI", null),
             new Course("HS101", "Environmental studies", 2, "0-0-0-8-2", null, null, null)
         ));
 
