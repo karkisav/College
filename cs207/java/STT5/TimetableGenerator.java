@@ -5,7 +5,6 @@ import java.nio.file.*;
 import java.awt.*;
 import java.awt.image.*;
 import javax.imageio.*;
-
 class Room {
     String roomNumber;
     boolean isLab;
@@ -18,62 +17,7 @@ class Room {
         this.isOccupied = false;
         this.assignedSection = null;
     }
-}       
-
-class Course {
-    String code;
-    String name;
-    int credits;
-    String ltpsc;
-    String faculty;
-    String department;
-    String sections;
-    int lectureHours;
-    int tutorialHours;
-    int practicalHours;
-    String assignedRoom; // Add assigned room field
-    String assignedLabRoom; // Add assigned lab room field
-
-    public Course(String code, String name, int credits, String ltpsc, String faculty, String department, String sections) {
-        this.code = code;
-        this.name = name;
-        this.credits = credits;
-        this.ltpsc = ltpsc;
-        this.faculty = faculty;
-        this.department = department;
-        this.sections = sections;
-
-        if (ltpsc != null && !ltpsc.isEmpty()) {
-            String[] parts = ltpsc.split("-");
-            if (parts.length == 5) {
-                this.lectureHours = Integer.parseInt(parts[0]);
-                this.tutorialHours = Integer.parseInt(parts[1]);
-                this.practicalHours = Integer.parseInt(parts[2]);
-            }
-        }
-    }
-}
-
-class TimeSlot {
-    int day;
-    int hour;
-    String courseCode;
-    String courseName;
-    String faculty;
-    String type;
-    String section;
-    String room; // Add room field
-
-    public TimeSlot(int day, int hour, String courseCode, String courseName, String faculty, String type, String section, String room) {
-        this.hour = hour;
-        this.courseCode = courseCode;
-        this.courseName = courseName;
-        this.faculty = faculty;
-        this.type = type;
-        this.section = section;
-        this.room = room;
-    }
-}
+}   
 
 class RoomManager {
     private List<Room> rooms;
@@ -290,20 +234,116 @@ class RoomManager {
     }
 }
 
+class Course {
+    String code;
+    String name;
+    int credits;
+    String ltpsc;
+    String faculty;
+    String department;
+    String sections;
+    int lectureHours;
+    int tutorialHours;
+    int practicalHours;
+    String assignedRoom; // Add assigned room field
+    String assignedLabRoom; // Add assigned lab room field
+
+    public Course(String code, String name, int credits, String ltpsc, String faculty, String department, String sections) {
+        this.code = code;
+        this.name = name;
+        this.credits = credits;
+        this.ltpsc = ltpsc;
+        this.faculty = faculty;
+        this.department = department;
+        this.sections = sections;
+
+        if (ltpsc != null && !ltpsc.isEmpty()) {
+            String[] parts = ltpsc.split("-");
+            if (parts.length == 5) {
+                this.lectureHours = Integer.parseInt(parts[0]);
+                this.tutorialHours = Integer.parseInt(parts[1]);
+                this.practicalHours = Integer.parseInt(parts[2]);
+            }
+        }
+    }
+}
+
+class TimeBlock {
+    int startHour;
+    int startMinute;
+    int endHour;
+    int endMinute;
+    boolean isBreak;
+
+    public TimeBlock(int startHour, int startMinute, int endHour, int endMinute, boolean isBreak) {
+        this.startHour = startHour;
+        this.startMinute = startMinute;
+        this.endHour = endHour;
+        this.endMinute = endMinute;
+        this.isBreak = isBreak;
+    }
+
+    public String getTimeRange() {
+        return String.format("%02d:%02d-%02d:%02d", startHour, startMinute, endHour, endMinute);
+    }
+
+    public boolean overlaps(TimeBlock other) {
+        int thisStart = startHour * 60 + startMinute;
+        int thisEnd = endHour * 60 + endMinute;
+        int otherStart = other.startHour * 60 + other.startMinute;
+        int otherEnd = other.endHour * 60 + other.endMinute;
+        
+        return !(thisEnd <= otherStart || thisStart >= otherEnd);
+    }
+}
+
+class TimeSlot {
+    int day;
+    TimeBlock timeBlock;
+    String courseCode;
+    String courseName;
+    String faculty;
+    String type;
+    String section;
+    String room;
+
+    public TimeSlot(int day, TimeBlock timeBlock, String courseCode, String courseName, 
+                   String faculty, String type, String section, String room) {
+        this.day = day;
+        this.timeBlock = timeBlock;
+        this.courseCode = courseCode;
+        this.courseName = courseName;
+        this.faculty = faculty;
+        this.type = type;
+        this.section = section;
+        this.room = room;
+    }
+}
+
 class Timetable {
     private List<Course> courses;
-    private TimeSlot[][] schedule;
+    private List<TimeSlot> timeSlots;
     private String section;
     private static final String[] DAYS = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
-    private static final int START_HOUR = 9;
-    private static final int END_HOUR = 17;
     private RoomManager roomManager;
     private int semester;
+    
+    private static final List<TimeBlock> BREAKS = Arrays.asList(
+        new TimeBlock(10, 30, 10, 45, true), // Morning break
+        new TimeBlock(12, 30, 14, 0, true)   // Lunch break
+    );
+    
+    private static final List<TimeBlock> AVAILABLE_SLOTS = Arrays.asList(
+        new TimeBlock(9, 0, 10, 30, false),
+        new TimeBlock(10, 45, 12, 30, false),
+        new TimeBlock(14, 0, 15, 30, false),
+        new TimeBlock(15, 30, 17, 0, false)
+    );
 
     public Timetable(List<Course> courses, String section, RoomManager roomManager, int semester) {
         this.courses = courses;
         this.section = section;
-        this.schedule = new TimeSlot[5][END_HOUR - START_HOUR];
+        this.timeSlots = new ArrayList<>();
         this.roomManager = roomManager;
         this.semester = semester;
         
@@ -319,94 +359,198 @@ class Timetable {
         }
     }
 
+    public List<TimeSlot> getTimeSlots() {
+        return new ArrayList<>(timeSlots);
+    }
+
+    private TimeBlock createTimeBlockForSession(String type) {
+        switch (type) {
+            case "Lecture":
+                return new TimeBlock(0, 0, 1, 30, false); // 1.5 hours
+            case "Tutorial":
+                return new TimeBlock(0, 0, 1, 0, false); // 1 hour
+            case "Lab":
+                return new TimeBlock(0, 0, 2, 0, false); // 2 hours
+            default:
+                return null;
+        }
+    }
+
+    private boolean isTimeSlotAvailable(int day, TimeBlock proposedTime) {
+        // Check if the proposed time overlaps with any breaks
+        for (TimeBlock breakTime : BREAKS) {
+            if (proposedTime.overlaps(breakTime)) {
+                return false;
+            }
+        }
+
+        // Check if the proposed time overlaps with any existing sessions
+        for (TimeSlot existingSlot : timeSlots) {
+            if (existingSlot.day == day && proposedTime.overlaps(existingSlot.timeBlock)) {
+                return false;
+            }
+        }
+
+        // Check if the proposed time fits within available slots
+        boolean fitsInAvailableSlot = false;
+        for (TimeBlock availableSlot : AVAILABLE_SLOTS) {
+            if (proposedTime.startHour * 60 + proposedTime.startMinute >= 
+                availableSlot.startHour * 60 + availableSlot.startMinute &&
+                proposedTime.endHour * 60 + proposedTime.endMinute <= 
+                availableSlot.endHour * 60 + availableSlot.endMinute) {
+                fitsInAvailableSlot = true;
+                break;
+            }
+        }
+        return fitsInAvailableSlot;
+    }
+
     public void generateTimetable() {
         Random rand = new Random();
 
-        // Schedule labs first
+        // Schedule labs first (they're longest)
         for (Course course : courses) {
             if (course.practicalHours > 0) {
                 boolean scheduled = false;
-                while (!scheduled) {
+                int attempts = 0;
+                while (!scheduled && attempts < 100) {
                     int day = rand.nextInt(5);
-                    int hour = rand.nextInt(END_HOUR - START_HOUR - 2);
-                    if (canScheduleLab(day, hour, course.practicalHours)) {
-                        scheduleLab(day, hour, course.practicalHours, course);
+                    TimeBlock labBlock = null;
+                    
+                    // Try to schedule in available slots
+                    for (TimeBlock availableSlot : AVAILABLE_SLOTS) {
+                        TimeBlock proposedLab = new TimeBlock(
+                            availableSlot.startHour,
+                            availableSlot.startMinute,
+                            availableSlot.startHour + 2,
+                            availableSlot.startMinute,
+                            false
+                        );
+                        
+                        if (isTimeSlotAvailable(day, proposedLab)) {
+                            labBlock = proposedLab;
+                            break;
+                        }
+                    }
+                    
+                    if (labBlock != null) {
+                        timeSlots.add(new TimeSlot(day, labBlock, course.code, course.name,
+                            course.faculty, "Lab", section, course.assignedLabRoom));
                         scheduled = true;
                     }
+                    attempts++;
                 }
             }
         }
 
         // Schedule lectures and tutorials
         for (Course course : courses) {
-            // Schedule lectures
+            // Schedule lectures (1.5 hours each)
             for (int i = 0; i < course.lectureHours; i++) {
                 boolean scheduled = false;
-                while (!scheduled) {
+                int attempts = 0;
+                while (!scheduled && attempts < 100) {
                     int day = rand.nextInt(5);
-                    int hour = rand.nextInt(END_HOUR - START_HOUR);
-                    if (isSlotFree(day, hour)) {
-                        schedule[day][hour] = new TimeSlot(day, hour, course.code, course.name, 
-                            course.faculty, "Lecture", section, course.assignedRoom);
+                    TimeBlock lectureBlock = null;
+                    
+                    for (TimeBlock availableSlot : AVAILABLE_SLOTS) {
+                        TimeBlock proposedLecture = new TimeBlock(
+                            availableSlot.startHour,
+                            availableSlot.startMinute,
+                            availableSlot.startHour + 1,
+                            availableSlot.startMinute + 30,
+                            false
+                        );
+                        
+                        if (isTimeSlotAvailable(day, proposedLecture)) {
+                            lectureBlock = proposedLecture;
+                            break;
+                        }
+                    }
+                    
+                    if (lectureBlock != null) {
+                        timeSlots.add(new TimeSlot(day, lectureBlock, course.code, course.name,
+                            course.faculty, "Lecture", section, course.assignedRoom));
                         scheduled = true;
                     }
+                    attempts++;
                 }
             }
 
-            // Schedule tutorials
+            // Schedule tutorials (1 hour each)
             for (int i = 0; i < course.tutorialHours; i++) {
                 boolean scheduled = false;
-                while (!scheduled) {
+                int attempts = 0;
+                while (!scheduled && attempts < 100) {
                     int day = rand.nextInt(5);
-                    int hour = rand.nextInt(END_HOUR - START_HOUR);
-                    if (isSlotFree(day, hour)) {
-                        schedule[day][hour] = new TimeSlot(day, hour, course.code, course.name, 
-                            course.faculty, "Tutorial", section, course.assignedRoom);
+                    TimeBlock tutorialBlock = null;
+                    
+                    for (TimeBlock availableSlot : AVAILABLE_SLOTS) {
+                        TimeBlock proposedTutorial = new TimeBlock(
+                            availableSlot.startHour,
+                            availableSlot.startMinute,
+                            availableSlot.startHour + 1,
+                            availableSlot.startMinute,
+                            false
+                        );
+                        
+                        if (isTimeSlotAvailable(day, proposedTutorial)) {
+                            tutorialBlock = proposedTutorial;
+                            break;
+                        }
+                    }
+                    
+                    if (tutorialBlock != null) {
+                        timeSlots.add(new TimeSlot(day, tutorialBlock, course.code, course.name,
+                            course.faculty, "Tutorial", section, course.assignedRoom));
                         scheduled = true;
                     }
+                    attempts++;
                 }
             }
         }
-    }
-
-    private boolean canScheduleLab(int day, int startHour, int duration) {
-        if (startHour + duration > END_HOUR - START_HOUR) return false;
-        for (int i = 0; i < duration; i++) {
-            if (!isSlotFree(day, startHour + i)) return false;
-        }
-        return true;
-    }
-
-    private void scheduleLab(int day, int startHour, int duration, Course course) {
-        for (int i = 0; i < duration; i++) {
-            schedule[day][startHour + i] = new TimeSlot(day, startHour + i, course.code, 
-                course.name, course.faculty, "Lab", section, course.assignedLabRoom);
-        }
-    }
-
-    private boolean isSlotFree(int day, int hour) {
-        return schedule[day][hour] == null;
     }
 
     public void printTimetable() {
         System.out.println("\nTIMETABLE FOR SECTION " + section);
-        System.out.printf("%-10s", "Time");
+        System.out.printf("%-15s", "Time");
         for (String day : DAYS) {
             System.out.printf("%-30s", day);
         }
-        System.out.println("\n" + "-".repeat(160));
+        System.out.println("\n" + "-".repeat(165));
 
-        for (int hour = 0; hour < END_HOUR - START_HOUR; hour++) {
-            System.out.printf("%-10s", String.format("%02d:00", hour + START_HOUR));
+        // Sort time slots by time and day
+        List<TimeBlock> allTimeBlocks = new ArrayList<>(AVAILABLE_SLOTS);
+        allTimeBlocks.addAll(BREAKS);
+        Collections.sort(allTimeBlocks, (a, b) -> {
+            int timeA = a.startHour * 60 + a.startMinute;
+            int timeB = b.startHour * 60 + b.startMinute;
+            return timeA - timeB;
+        });
 
-            for (int day = 0; day < 5; day++) {
-                TimeSlot slot = schedule[day][hour];
-                if (slot == null) {
-                    System.out.printf("%-30s", "---");
-                } else {
-                    String display = String.format("%s (%s) [%s]", 
-                        slot.courseCode, slot.type, slot.room);
-                    System.out.printf("%-30s", display);
+        for (TimeBlock block : allTimeBlocks) {
+            System.out.printf("%-15s", block.getTimeRange());
+
+            if (block.isBreak) {
+                String breakText = block.startHour == 12 ? "LUNCH BREAK" : "BREAK";
+                for (int day = 0; day < 5; day++) {
+                    System.out.printf("%-30s", breakText);
+                }
+            } else {
+                for (int day = 0; day < 5; day++) {
+                    boolean slotFilled = false;
+                    for (TimeSlot slot : timeSlots) {
+                        if (slot.day == day && slot.timeBlock.overlaps(block)) {
+                            String display = String.format("%s (%s) [%s]", 
+                                slot.courseCode, slot.type, slot.room);
+                            System.out.printf("%-30s", display);
+                            slotFilled = true;
+                            break;
+                        }
+                    }
+                    if (!slotFilled) {
+                        System.out.printf("%-30s", "---");
+                    }
                 }
             }
             System.out.println();
@@ -421,26 +565,47 @@ class Timetable {
             writer.print("Time,");
             writer.println(String.join(",", DAYS));
 
-            for (int hour = 0; hour < END_HOUR - START_HOUR; hour++) {
-                StringBuilder line = new StringBuilder();
-                line.append(String.format("%02d:00,", hour + START_HOUR));
+            List<TimeBlock> allTimeBlocks = new ArrayList<>(AVAILABLE_SLOTS);
+            allTimeBlocks.addAll(BREAKS);
+            Collections.sort(allTimeBlocks, (a, b) -> {
+                int timeA = a.startHour * 60 + a.startMinute;
+                int timeB = b.startHour * 60 + b.startMinute;
+                return timeA - timeB;
+            });
 
-                for (int day = 0; day < 5; day++) {
-                    TimeSlot slot = schedule[day][hour];
-                    if (slot == null) {
-                        line.append("-");
-                    } else {
-                        String entry = String.format("%s (%s) - %s [%s]", 
-                            slot.courseCode, 
-                            slot.type,
-                            slot.courseName,
-                            slot.room);
-                        if (slot.faculty != null && !slot.faculty.isEmpty()) {
-                            entry += String.format(" <%s>", slot.faculty);
-                        }
-                        line.append(entry);
+            for (TimeBlock block : allTimeBlocks) {
+                StringBuilder line = new StringBuilder();
+                line.append(block.getTimeRange()).append(",");
+
+                if (block.isBreak) {
+                    String breakText = block.startHour == 12 ? "LUNCH BREAK" : "BREAK";
+                    for (int day = 0; day < 5; day++) {
+                        line.append(breakText);
+                        if (day < 4) line.append(",");
                     }
-                    line.append(day < 4 ? "," : "");
+                } else {
+                    for (int day = 0; day < 5; day++) {
+                        boolean slotFilled = false;
+                        for (TimeSlot slot : timeSlots) {
+                            if (slot.day == day && slot.timeBlock.overlaps(block)) {
+                                String entry = String.format("%s (%s) - %s [%s]", 
+                                    slot.courseCode, 
+                                    slot.type,
+                                    slot.courseName,
+                                    slot.room);
+                                if (slot.faculty != null && !slot.faculty.isEmpty()) {
+                                    entry += String.format(" <%s>", slot.faculty);
+                                }
+                                line.append(entry);
+                                slotFilled = true;
+                                break;
+                            }
+                        }
+                        if (!slotFilled) {
+                            line.append("-");
+                        }
+                        if (day < 4) line.append(",");
+                    }
                 }
                 writer.println(line);
             }
@@ -464,19 +629,26 @@ class Timetable {
             System.err.println("Error writing to CSV file: " + e.getMessage());
         }
     }
-
-    public TimeSlot[][] getSchedule() {
-        return schedule;
-    }
 }
 
 public class TimetableGenerator {
+    private static final List<TimeBlock> AVAILABLE_SLOTS = Arrays.asList(
+        new TimeBlock(8, 30, 9, 30, false),
+        new TimeBlock(9, 30, 10, 30, false),
+        new TimeBlock(10, 30, 11, 30, false),
+        new TimeBlock(11, 30, 12, 30, false),
+        new TimeBlock(12, 30, 13, 30, false),  // Note: Using 13 for 1 PM
+        new TimeBlock(13, 30, 14, 30, false),  // 14 for 2 PM
+        new TimeBlock(14, 30, 15, 30, false),  // 15 for 3 PM
+        new TimeBlock(15, 30, 16, 30, false)   // 16 for 4 PM
+    );
     private static Map<Integer, Map<String, List<Course>>> parseCoursesFromCSV(String filepath) {
         // Map<Semester, Map<Section, List<Course>>>
         Map<Integer, Map<String, List<Course>>> semesterSectionCourses = new HashMap<>();
         int currentSemester = 0;
         int courseCounter = 1;
         int lineNumber = 0;
+        
 
         try (BufferedReader br = new BufferedReader(new FileReader(filepath))) {
             String line;
@@ -625,12 +797,10 @@ public class TimetableGenerator {
                 timetable.exportToCSV(filename, semester);
                 System.out.println("\nTimetable exported to " + filename);
 
-                // Generate and save timetable image
+                //Generate and save timetable image
                 String imageFilename = String.format("timetables/semester_%d_section_%s_timetable.png", semester, section);
-                TimeSlot[][] schedule = timetable.getSchedule();
-                ImageGenerator.generateTimetableImage(schedule, courses, imageFilename, semester, section);
+                ImageGenerator.generateTimetableImage(timetable.getTimeSlots(), AVAILABLE_SLOTS, courses, imageFilename, semester, section);
                 System.out.println("Timetable image exported to " + imageFilename);
-
             }
         }
     }
@@ -642,6 +812,7 @@ class ImageGenerator {
     private static final Color LECTURE_COLOR = new Color(255, 228, 225);
     private static final Color TUTORIAL_COLOR = new Color(230, 230, 250);
     private static final Color LAB_COLOR = new Color(220, 255, 220);
+    private static final Color BREAK_COLOR = new Color(245, 245, 245);
     private static final Color TEXT_COLOR = new Color(51, 51, 51);
     private static final Color HEADER_TEXT = new Color(255, 255, 255);
 
@@ -651,22 +822,25 @@ class ImageGenerator {
 
     private static final int CELL_HEIGHT = 70;
     private static final int CELL_WIDTH = 220;
-    private static final int TIME_COLUMN_WIDTH = 50;    
+    private static final int TIME_COLUMN_WIDTH = 80;    
     private static final int LEGEND_HEIGHT = 40;
-    private static final int COURSE_DETAIL_HEIGHT_PER_COURSE = 60; // Height allocation per course
-    private static final int LEGEND_PADDING = 100; // Additional padding for legend section
+    private static final int COURSE_DETAIL_HEIGHT_PER_COURSE = 60;
+    private static final int LEGEND_PADDING = 100;
 
-    public static void generateTimetableImage(TimeSlot[][] schedule, List<Course> courses, String outputPath, int semester, String section) {
+    public static void generateTimetableImage(List<TimeSlot> timeSlots, List<TimeBlock> allTimeBlocks, 
+                                            List<Course> courses, String outputPath, int semester, String section) {
+        // Sort time blocks by start time
+        allTimeBlocks.sort((a, b) -> Integer.compare(a.startHour * 60 + a.startMinute, b.startHour * 60 + b.startMinute));
+
         int width = TIME_COLUMN_WIDTH + (CELL_WIDTH * 5);
-        // Calculate dynamic height based on number of courses
-        int timeTableHeight = CELL_HEIGHT * (17 - 9); // +2 for header rows
+        int timeTableHeight = CELL_HEIGHT * (allTimeBlocks.size() + 1); // +1 for header
         int coursesHeight = COURSE_DETAIL_HEIGHT_PER_COURSE * courses.size();
         int height = timeTableHeight + LEGEND_HEIGHT + coursesHeight + LEGEND_PADDING;
         
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         Graphics2D g2d = image.createGraphics();
         
-        // Enable anti-aliasing for smoother text
+        // Enable anti-aliasing
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         
@@ -699,117 +873,93 @@ class ImageGenerator {
                           CELL_HEIGHT + CELL_HEIGHT / 2 + fm.getHeight() / 4);
         }
         
-        // Draw time slots and schedule
-        g2d.setFont(new Font("Arial", Font.PLAIN, 11)); // Slightly smaller font for cell content
-        for (int hour = 0; hour < 17 - 9; hour++) {
-            // Draw time
-            int y = (hour + 2) * CELL_HEIGHT;
+        // Draw time blocks and schedule
+        g2d.setFont(CELL_FONT);
+        for (int blockIndex = 0; blockIndex < allTimeBlocks.size(); blockIndex++) {
+            TimeBlock block = allTimeBlocks.get(blockIndex);
+            int y = (blockIndex + 2) * CELL_HEIGHT;
+            
+            // Draw time column
             g2d.setColor(HEADER_BG);
             g2d.fillRect(0, y, TIME_COLUMN_WIDTH, CELL_HEIGHT);
             g2d.setColor(HEADER_TEXT);
-            String time = String.format("%02d:00", hour + 9);
+            String time = String.format("%02d:%02d-%02d:%02d", 
+                block.startHour, block.startMinute,
+                block.endHour, block.endMinute);
             FontMetrics fm = g2d.getFontMetrics();
             g2d.drawString(time, (TIME_COLUMN_WIDTH - fm.stringWidth(time)) / 2, 
                           y + CELL_HEIGHT / 2 + fm.getHeight() / 4);
             
-            // Draw schedule cells
+            // Draw schedule cells for each day
             for (int day = 0; day < 5; day++) {
                 int x = TIME_COLUMN_WIDTH + day * CELL_WIDTH;
-                TimeSlot slot = schedule[day][hour];
                 
-                // Draw cell background
+                // First draw the base cell
                 g2d.setColor(CELL_BG);
                 g2d.fillRect(x, y, CELL_WIDTH, CELL_HEIGHT);
-                g2d.setColor(Color.LIGHT_GRAY);
-                g2d.drawRect(x, y, CELL_WIDTH, CELL_HEIGHT);
                 
-                if (slot != null) {
-                    // Set background color based on type
-                    switch (slot.type) {
-                        case "Lecture":
-                            g2d.setColor(LECTURE_COLOR);
-                            break;
-                        case "Tutorial":
-                            g2d.setColor(TUTORIAL_COLOR);
-                            break;
-                        case "Lab":
-                            g2d.setColor(LAB_COLOR);
-                            break;
-                    }
-                    g2d.fillRect(x + 1, y + 1, CELL_WIDTH - 2, CELL_HEIGHT - 2);
-                    
-                    // Draw text
+                // Check if this is a break time
+                boolean isBreakTime = isBreakTime(block);
+                if (isBreakTime) {
+                    g2d.setColor(BREAK_COLOR);
+                    g2d.fillRect(x, y, CELL_WIDTH, CELL_HEIGHT);
                     g2d.setColor(TEXT_COLOR);
-                    String[] lines = {
-                        slot.courseCode,
-                        slot.courseName,
-                        "(" + slot.type + ")",
-                        "Room: " + slot.room,
-                        slot.faculty
-                    };
+                    String breakText = (block.startHour == 12 || block.startHour == 13) ? "LUNCH BREAK" : "BREAK";
+                    g2d.drawString(breakText, x + (CELL_WIDTH - fm.stringWidth(breakText)) / 2,
+                                 y + CELL_HEIGHT / 2 + fm.getHeight() / 4);
+                } else {
+                    // Find matching time slot
+                    TimeSlot matchingSlot = findMatchingTimeSlot(timeSlots, day, block);
                     
-                    int textY = y + 12; // Start a bit higher to fit all lines
-                    for (String line : lines) {
-                        if (line != null && !line.isEmpty()) {
-                            // Center align the text
-                            int textWidth = fm.stringWidth(line);
-                            int textX = x + (CELL_WIDTH - textWidth) / 2;
-                            g2d.drawString(line, textX, textY);
-                            textY += fm.getHeight();
+                    if (matchingSlot != null) {
+                        // Set background color based on type
+                        switch (matchingSlot.type.toLowerCase()) {
+                            case "lecture":
+                                g2d.setColor(LECTURE_COLOR);
+                                break;
+                            case "tutorial":
+                                g2d.setColor(TUTORIAL_COLOR);
+                                break;
+                            case "lab":
+                            case "practical":
+                                g2d.setColor(LAB_COLOR);
+                                break;
+                        }
+                        g2d.fillRect(x + 1, y + 1, CELL_WIDTH - 2, CELL_HEIGHT - 2);
+                        
+                        // Draw text
+                        g2d.setColor(TEXT_COLOR);
+                        String[] lines = {
+                            matchingSlot.courseCode,
+                            "(" + matchingSlot.type + ")",
+                            truncateText(matchingSlot.courseName, CELL_WIDTH - 10, fm),
+                            "Room: " + matchingSlot.room,
+                            truncateText(matchingSlot.faculty, CELL_WIDTH - 10, fm)
+                        };
+                        
+                        int textY = y + 12;
+                        for (String line : lines) {
+                            if (line != null && !line.isEmpty()) {
+                                int textWidth = fm.stringWidth(line);
+                                int textX = x + (CELL_WIDTH - textWidth) / 2;
+                                g2d.drawString(line, textX, textY);
+                                textY += fm.getHeight();
+                            }
                         }
                     }
                 }
+                
+                // Draw cell border
+                g2d.setColor(Color.LIGHT_GRAY);
+                g2d.drawRect(x, y, CELL_WIDTH, CELL_HEIGHT);
             }
         }
         
         // Draw legend
-        int legendY = (17 - 9 + 2) * CELL_HEIGHT;
-        g2d.setFont(LEGEND_FONT);
-        g2d.setColor(HEADER_BG);
-        g2d.fillRect(0, legendY, width, LEGEND_HEIGHT);
-        g2d.setColor(HEADER_TEXT);
-        g2d.drawString("Legend:", 10, legendY + 25);
-        
-        // Draw color boxes for class types
-        int boxSize = 20;
-        int legendX = 100;
-        g2d.setColor(LECTURE_COLOR);
-        g2d.fillRect(legendX, legendY + 10, boxSize, boxSize);
-        g2d.setColor(TEXT_COLOR);
-        g2d.drawString("Lecture", legendX + boxSize + 10, legendY + 25);
-        
-        legendX += 150;
-        g2d.setColor(TUTORIAL_COLOR);
-        g2d.fillRect(legendX, legendY + 10, boxSize, boxSize);
-        g2d.setColor(TEXT_COLOR);
-        g2d.drawString("Tutorial", legendX + boxSize + 10, legendY + 25);
-        
-        legendX += 150;
-        g2d.setColor(LAB_COLOR);
-        g2d.fillRect(legendX, legendY + 10, boxSize, boxSize);
-        g2d.setColor(TEXT_COLOR);
-        g2d.drawString("Lab", legendX + boxSize + 10, legendY + 25);
+        drawLegend(g2d, allTimeBlocks.size(), width);
         
         // Draw course details
-        g2d.setColor(TEXT_COLOR);
-        int courseY = legendY + LEGEND_HEIGHT + 10;
-        g2d.setFont(new Font("Arial", Font.BOLD, 16));
-        g2d.drawString("Course Details:", 10, courseY);
-        courseY += 25;
-        
-        g2d.setFont(LEGEND_FONT);
-        for (Course course : courses) {
-            String details = String.format("%s - %s", course.code, course.name);
-            g2d.drawString(details, 20, courseY);
-            courseY += 20;
-            
-            String additionalInfo = String.format("    Faculty: %s | Regular Room: %s | Lab Room: %s",
-                course.faculty,
-                course.assignedRoom,
-                course.practicalHours > 0 ? course.assignedLabRoom : "N/A");
-            g2d.drawString(additionalInfo, 20, courseY);
-            courseY += 25;
-        }
+        drawCourseDetails(g2d, courses, allTimeBlocks.size(), width);
         
         g2d.dispose();
         
@@ -817,6 +967,89 @@ class ImageGenerator {
             ImageIO.write(image, "PNG", new File(outputPath));
         } catch (IOException e) {
             System.err.println("Error saving timetable image: " + e.getMessage());
+        }
+    }
+    
+    private static boolean isBreakTime(TimeBlock block) {
+        // Define break times (including lunch break)
+        return (block.startHour == 12 && block.startMinute == 30) || // Lunch break
+               (block.startHour == 10 && block.startMinute == 30) || // Morning break
+               (block.startHour == 15 && block.startMinute == 30);   // Evening break
+    }
+    
+    private static TimeSlot findMatchingTimeSlot(List<TimeSlot> timeSlots, int day, TimeBlock block) {
+        return timeSlots.stream()
+            .filter(slot -> slot.day == day && 
+                          ((slot.timeBlock.startHour == block.startHour && 
+                            slot.timeBlock.startMinute == block.startMinute) ||
+                           slot.timeBlock.overlaps(block)))
+            .findFirst()
+            .orElse(null);
+    }
+    
+    private static String truncateText(String text, int maxWidth, FontMetrics fm) {
+        if (text == null || text.isEmpty()) return text;
+        if (fm.stringWidth(text) <= maxWidth) return text;
+        
+        String ellipsis = "...";
+        int ellipsisWidth = fm.stringWidth(ellipsis);
+        StringBuilder truncated = new StringBuilder();
+        
+        for (char c : text.toCharArray()) {
+            if (fm.stringWidth(truncated.toString() + c + ellipsis) > maxWidth) {
+                return truncated.toString() + ellipsis;
+            }
+            truncated.append(c);
+        }
+        
+        return truncated.toString();
+    }
+
+    private static void drawLegend(Graphics2D g2d, int numTimeBlocks, int width) {
+        int legendY = (numTimeBlocks + 2) * CELL_HEIGHT;
+        g2d.setFont(LEGEND_FONT);
+        g2d.setColor(HEADER_BG);
+        g2d.fillRect(0, legendY, width, LEGEND_HEIGHT);
+        g2d.setColor(HEADER_TEXT);
+        g2d.drawString("Legend:", 10, legendY + 25);
+        
+        int boxSize = 20;
+        int legendX = 100;
+        
+        // Draw legend items using simple iteration
+        Color[] colors = {LECTURE_COLOR, TUTORIAL_COLOR, LAB_COLOR, BREAK_COLOR};
+        String[] labels = {"Lecture", "Tutorial", "Lab", "Break"};
+        
+        for (int i = 0; i < colors.length; i++) {
+            g2d.setColor(colors[i]);
+            g2d.fillRect(legendX, legendY + 10, boxSize, boxSize);
+            g2d.setColor(TEXT_COLOR);
+            g2d.drawString(labels[i], legendX + boxSize + 10, legendY + 25);
+            legendX += 150;
+        }
+    }
+    
+    private static void drawCourseDetails(Graphics2D g2d, List<Course> courses, int numTimeBlocks, int width) {
+        int courseY = (numTimeBlocks + 2) * CELL_HEIGHT + LEGEND_HEIGHT + 10;
+        g2d.setColor(TEXT_COLOR);
+        g2d.setFont(new Font("Arial", Font.BOLD, 16));
+        g2d.drawString("Course Details:", 10, courseY);
+        courseY += 25;
+        
+        g2d.setFont(LEGEND_FONT);
+        for (Course course : courses) {
+            String details = String.format("%s - %s (%s)", 
+                course.code, course.name, course.ltpsc);
+            g2d.drawString(details, 20, courseY);
+            courseY += 20;
+            
+            String additionalInfo = String.format("    Faculty: %s | Department: %s | Regular Room: %s | Lab Room: %s",
+                course.faculty,
+                course.department,
+                course.assignedRoom,
+                course.practicalHours > 0 ? course.assignedLabRoom : "N/A");
+            g2d.drawString(additionalInfo, 20, courseY);
+            courseY += 25;
         }
     }
 }
