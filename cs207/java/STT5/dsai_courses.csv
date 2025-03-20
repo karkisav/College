@@ -1,0 +1,27 @@
+Sl. No,Course Code,Course name,Credits,L-T-P-S-C,Faculty Name,Department
+Sem 1,,,,,,
+1,DS101,Mathematics for Data Science,4,3-1-0-0-4,Guest Faculty,H&S
+2,DS102,Finance and Accounting,4,3-1-0-0-4,Dr. Anushree Kini,H&S
+3,CS105,Problem Solving through Programming,5,3-1-2-0-5,Dr. Manjunath KV,DSAI
+4,DS104,Data Science and AI Applications,4,3-0-0-4-4,Dr. Siddharth R,DSAI
+5,HS103,Language and Communication,3,2-0-2-0-3,Dr. Rajesh,H&S
+Sem 3,,,,,,
+1,DS201,Data and Business Analytics,4,3-0-2-0-4,Dr. Rajib Sharma,DSAI
+2,CS201,Discrete Mathematics,4,3-1-0-0-4,Dr. Animesh Roy,CSE
+3,CS207,Object Oriented Programming,4,3-0-2-0-4,Dr. Manjunath KV,DSAI
+4,CS202,Design & Analysis of Algorithms,5,3-1-2-0-5,Dr. Sunil Saumya,DSAI
+5,EC209,Introduction to Systems Thinking,4,3-1-0-0-4,Dr. Jagadeesha R B,ECE
+6,HS205,Ethics,3,3-0-0-0-3,Guest Faculty,H&S
+Sem 5,,,,,,
+1,DS301,Graphs and Social Networks,4,3-1-0-0-4,Dr. Utkarsh Khaire,DSAI
+2,DS302,Computer Communication Networks,5,3-1-2-0-5,Dr. Shirshendu Layek,DSAI
+3,DS303,Algorithms and Artificial Intelligence,4,3-1-0-0-4,Dr. Animesh Chaturvedi,DSAI
+4,CS307,Machine Learning,4,3-0-2-0-4,Dr. Sunil Saumya,DSAI
+5,DS304,Visualization and App Development,4,2-1-2-0-4,Dr. Siddharth R,DSAI
+Sem 7,,,,,,
+1,DS401,Healthcare Data Analytics,4,3-1-0-0-4,Dr. Girish GN,CSE
+2,,Elective 2,4,3-1-0-0-4,,
+3,,Elective 3,4,3-1-0-0-4,,
+4,,Elective 4,4,3-1-0-0-4,,
+5,DS399,Mini Project II,2,0-0-0-8-2,Dr. Shirshendu Layek,DSAI
+6,,MOOC / SWAYAM Course,2,0-0-0-8-2,Dr. Siddharth R,DSAI

@@ -1,0 +1,31 @@
+Sl. No,Course Code,Course name,Credits,L-T-P-S-C,Faculty Name,Department
+Sem1,,,,,,
+1,,Probability,2,,Dr. Anand P B,H&S
+2,,Statistics ,2,,Dr. Ramesh Athe,H&S
+3,,Open elective I,2,,,
+4,,Economics,3,,Dr. Anushree,H&S
+5,,Problem Solving through Programming,4,,Dr. Suvadip Hazra,CSE
+6,,Digital Design,2,,Dr. Jagadeesh R Bhat,ECE
+7,,Introduction to DS and AI,2,,Dr. Siddharth,DSAI
+Sem3,,,,,,
+1,MA202,Linear Algebra,4,3-1-0-0-4,Dr.Lakshman,H&S
+2,EC207,Electromagnetic Theory,4,3-1-0-0-4,Dr. Somen Bhattacharjee,ECE
+3,EC206,Linear Integrated Circuits,4,3-0-2-0-4,Dr. Prakash Pawar ,ECE
+,EC206-Lab,LIC -Lab,,,,ECE
+4,EC201,Signals and Systems,4,3-1-0-0-4,Dr. Sibasankar Padhy,ECE
+5,EC202,Microprocessors and Micro-controllers,4,3-0-2-0-4,Dr. Nataraj,ECE
+6,HS102,Professional Communication,3,2-1-0-0-3,Dr. Chandrika Kamath,H&S
+Sem5,,,,,,
+1,EC306,Digital Signal Processing,4,3-0-2-0-4,Dr.Rajeeb,
+,,DSP Lab,,,,
+2,EC301,Introduction to VLSI Design,4,3-1-0-0-4,Dr. Jagadish D N,
+3,,Happiness and Wellbeing (Life Skill Basket),3,3-0-0-0-3,Dr. Chandrika Kamath,
+4,,Introduction to Algorithms (Elective 1),4,3-1-0-0-4,Dr. Deepak,
+5,,Advanced Digital Communication System (Elective 2),4,3-1-0-0-4,Dr. Chinmayananda,
+6,,Internet of Things (Elective 3),4,3-1-0-0-4,Dr. Prakash Pawar,
+,,,,,,
+Sem7,,,,,,
+1,NEW,Generative AI,4,3-1-0-0-4,Dr. Natraj & Dr. Chinmayananda,
+2,NEW,Energy Efficient Neural Networks,4,3-1-0-0-4,Dr. Jagdish D N,
+3,NEW,Image Processing and Computer Vision,4,3-1-0-0-4,Dr. Sibasankar Padhy,
+4,NEW,Antennas & Radar Systems,4,3-1-0-0-4,Dr. Somen Bhattacharjee,
